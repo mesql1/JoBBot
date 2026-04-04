@@ -7,8 +7,6 @@ Busca Automática: Envia uma lista de vagas de TI a cada 24 horas em canais conf
 
 Busca Manual: Comando !buscar [termo] para pesquisar tecnologias específicas (ex: !buscar react).
 
-Multi-Servidor: Suporte a múltiplos servidores com persistência de dados via JSON.
-
 Interface Amigável: Exibição das vagas utilizando Discord Embeds para melhor leitura e links diretos.
 
 Segurança: Gestão de credenciais através de variáveis de ambiente (.env).
