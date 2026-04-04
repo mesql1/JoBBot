@@ -81,3 +81,6 @@ servidores.json: (Não incluído no repo) Armazena a configuração de canais po
 !setar_canal: Define o canal atual como o destino das vagas automáticas (Requer Admin).
 
 !buscar [termo]: Busca vagas em tempo real sobre um tema específico.
+
+![print discord](https://github.com/user-attachments/assets/dddabb90-3fdc-4d08-b3f9-abfa45ba20fd)
+![print discord(1)](https://github.com/user-attachments/assets/c13a32ff-1131-4cd6-941a-65d45e8fa010)
