@@ -35,7 +35,6 @@ Obter uma App ID e App Key no Adzuna Developer Portal.
 
 Clone o repositório e acesse a pasta:
 
-Bash
 git clone https://github.com/seu-usuario/jobbot.git
 
 cd jobbot
@@ -47,11 +46,13 @@ python -m venv venv
 Windows:
 
 .\venv\Scripts\activate
+
 Instale as dependências:
 
-Bash
 pip install -r requirements.txt
+
 3. Configuração
+
 Crie um arquivo .env na raiz do projeto e adicione suas credenciais:
 
 DISCORD_TOKEN=seu_token_aqui
