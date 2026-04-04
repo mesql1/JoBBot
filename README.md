@@ -77,6 +77,7 @@ vagas_api.py: Módulo responsável pela comunicação com a API da Adzuna e trat
 servidores.json: (Não incluído no repo) Armazena a configuração de canais por servidor.
 
 📝 Comandos
+
 !oi: Verifica se o bot está online.
 
 !setar_canal: Define o canal atual como o destino das vagas automáticas (Requer Admin).
