@@ -43,7 +43,9 @@ cd jobbot
 Crie e ative um ambiente virtual:
 
 python -m venv venv
-# Windows:
+
+Windows:
+
 .\venv\Scripts\activate
 Instale as dependências:
 
