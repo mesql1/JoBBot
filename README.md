@@ -47,6 +47,7 @@ Windows:
 
 .\venv\Scripts\activate
 
+
 Instale as dependências:
 
 pip install -r requirements.txt
