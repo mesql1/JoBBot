@@ -1,8 +1,8 @@
-# JoBBot 🚀 - Monitor de Vagas de TI
+# JoBBot - Monitor de Vagas de TI
 
 O JoBBot é um bot para Discord desenvolvido em Python que automatiza a busca de oportunidades de emprego na área de Tecnologia. Ele utiliza a API da Adzuna para buscar dados em tempo real e permite que diferentes servidores configurem seus próprios canais de anúncio.
 
-# ✨ Funcionalidades
+# Funcionalidades
 Busca Automática: Envia uma lista de vagas de TI a cada 24 horas em canais configurados.
 
 Busca Manual: Comando !buscar [termo] para pesquisar tecnologias específicas (ex: !buscar react).
@@ -11,7 +11,7 @@ Interface Amigável: Exibição das vagas utilizando Discord Embeds para melhor 
 
 Segurança: Gestão de credenciais através de variáveis de ambiente (.env).
 
-# 🛠️ Tecnologias Utilizadas
+# Tecnologias Utilizadas
 Python 3.12
 
 discord.py: Integração com a API do Discord.
@@ -22,7 +22,7 @@ python-dotenv: Gerenciamento de chaves de API e tokens.
 
 JSON: Persistência local de configurações dos servidores.
 
-# 🚀 Como Executar o Projeto
+# Como Executar o Projeto
 1. Pré-requisitos:
 
 Ter o Python instalado.
@@ -35,7 +35,7 @@ Obter uma App ID e App Key no Adzuna Developer Portal.
 
 Clone o repositório e acesse a pasta:
 
-git clone https://github.com/seu-usuario/jobbot.git
+git clone https://github.com/mesql1/jobbot.git
 
 cd jobbot
 
@@ -68,7 +68,7 @@ Certifique-se de criar um arquivo servidores.json inicial com apenas {} dentro.
 
 python main.py
 
-# 📂 Estrutura do Projeto
+# Estrutura do Projeto
 
 main.py: Coração do bot, gerencia eventos, comandos e o loop de automação.
 
@@ -78,7 +78,7 @@ vagas_api.py: Módulo responsável pela comunicação com a API da Adzuna e trat
 
 servidores.json: (Não incluído no repo) Armazena a configuração de canais por servidor.
 
-# 📝 Comandos
+# Comandos
 
 !oi: Verifica se o bot está online.
 
