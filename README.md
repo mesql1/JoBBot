@@ -1,90 +1,132 @@
-# JoBBot - Monitor de Vagas de TI
+# JoBBot — monitor de vagas de TI para Discord
 
-O JoBBot é um bot para Discord desenvolvido em Python que automatiza a busca de oportunidades de emprego na área de Tecnologia. Ele utiliza a API da Adzuna para buscar dados em tempo real e permite que diferentes servidores configurem seus próprios canais de anúncio.
+JoBBot busca oportunidades na Adzuna, publica apenas vagas novas diariamente e
+permite buscas sob demanda por slash commands. Cada servidor escolhe seu canal e
+até cinco termos de busca.
 
-# Funcionalidades
-Busca Automática: Envia uma lista de vagas de TI a cada 24 horas em canais configurados.
+## O que o bot oferece
 
-Busca Manual: Comando !buscar [termo] para pesquisar tecnologias específicas (ex: !buscar react).
+- busca assíncrona, com timeout e cache curto para não bloquear o Discord nem
+  desperdiçar a cota da Adzuna;
+- publicação diária às **09:00 no horário de São Paulo**;
+- filtro de categoria de TI, ordenação por data e vagas das últimas 24 horas;
+- deduplicação por ID da Adzuna, persistida em SQLite;
+- até dez embeds por mensagem, com empresa, local, salário, data e descrição;
+- isolamento de falhas por servidor: um canal sem permissão não interrompe os
+  demais;
+- slash commands, sem necessidade da intent privilegiada `message_content`.
 
-Interface Amigável: Exibição das vagas utilizando Discord Embeds para melhor leitura e links diretos.
+## Pré-requisitos
 
-Segurança: Gestão de credenciais através de variáveis de ambiente (.env).
+- Python 3.12 ou Docker;
+- uma aplicação no [Discord Developer Portal](https://discord.com/developers/applications);
+- credenciais no [Adzuna Developer Portal](https://developer.adzuna.com/).
 
-# Tecnologias Utilizadas
-Python 3.12
+No portal do Discord, adicione um bot à aplicação. Nenhuma intent privilegiada é
+necessária. Na página **OAuth2 > URL Generator**, selecione os escopos `bot` e
+`applications.commands` e dê ao bot as permissões View Channels, Send Messages,
+Embed Links e Read Message History. Você também pode substituir `SEU_CLIENT_ID`
+neste link:
 
-discord.py: Integração com a API do Discord.
+```text
+https://discord.com/oauth2/authorize?client_id=SEU_CLIENT_ID&scope=bot%20applications.commands&permissions=84992
+```
 
-Requests: Consumo da API REST da Adzuna.
+## Instalação local
 
-python-dotenv: Gerenciamento de chaves de API e tokens.
+Clone o projeto e entre na pasta:
 
-JSON: Persistência local de configurações dos servidores.
+```bash
+git clone https://github.com/mesql1/JoBBot.git
+cd JoBBot
+python -m venv .venv
+```
 
-# Como Executar o Projeto
-1. Pré-requisitos:
+Ative o ambiente no Windows (PowerShell):
 
-Ter o Python instalado.
+```powershell
+.\.venv\Scripts\Activate.ps1
+```
 
-Criar uma aplicação no Discord Developer Portal.
+No Linux ou macOS:
 
-Obter uma App ID e App Key no Adzuna Developer Portal.
+```bash
+source .venv/bin/activate
+```
 
-2. Instalação
+Instale e configure:
 
-Clone o repositório e acesse a pasta:
-
-git clone https://github.com/mesql1/jobbot.git
-
-cd jobbot
-
-Crie e ative um ambiente virtual:
-
-python -m venv venv
-
-Windows:
-
-.\venv\Scripts\activate
-
-
-Instale as dependências:
-
+```bash
 pip install -r requirements.txt
+cp .env.example .env  # no Windows: Copy-Item .env.example .env
+```
 
-3. Configuração
+Preencha `DISCORD_TOKEN`, `ADZUNA_ID` e `ADZUNA_KEY` no `.env`. Para testar os
+comandos imediatamente em um servidor, informe também seu ID em
+`DISCORD_GUILD_ID`. Sem essa variável, os comandos são globais e o Discord pode
+levar algum tempo para propagá-los.
 
-Crie um arquivo .env na raiz do projeto e adicione suas credenciais:
+Não é necessário criar `servidores.json`: o banco `jobbot.db` é criado
+automaticamente. Se uma instalação antiga tiver `servidores.json`, os canais são
+importados ao iniciar.
 
-DISCORD_TOKEN=seu_token_aqui
+Execute:
 
-ADZUNA_ID=seu_id_aqui
-
-ADZUNA_KEY=sua_chave_aqui
-
-Certifique-se de criar um arquivo servidores.json inicial com apenas {} dentro.
-
-4. Rodando o Bot
-
+```bash
 python main.py
+```
 
-# Estrutura do Projeto
+O processo falha cedo e informa quais variáveis obrigatórias estão faltando.
 
-main.py: Coração do bot, gerencia eventos, comandos e o loop de automação.
+## Comandos
 
-vagas_api.py: Módulo responsável pela comunicação com a API da Adzuna e tratamento de dados (limpeza de HTML e mapeamento de JSON).
+- `/oi`: confirma que o bot está online;
+- `/buscar termo:"desenvolvedor python"`: pesquisa uma expressão completa. Cada
+  usuário pode fazer duas buscas por minuto;
+- `/setar_canal canal:#vagas termos:"python, dados, suporte"`: configura o canal
+  e de um a cinco termos. Requer permissão de administrador.
 
-.env: (Não incluído no repo) Armazena chaves sensíveis.
+## Hospedagem 24/7
 
-servidores.json: (Não incluído no repo) Armazena a configuração de canais por servidor.
+### Docker
 
-# Comandos
+```bash
+docker build -t jobbot .
+docker run --env-file .env -v jobbot-data:/app/data \
+  -e DATABASE_PATH=/app/data/jobbot.db jobbot
+```
 
-!oi: Verifica se o bot está online.
+Em um VPS, use o mesmo container com uma política de reinício, por exemplo
+`--restart unless-stopped`. No Railway ou serviço semelhante, conecte o
+repositório, cadastre as três variáveis secretas e anexe um volume persistente;
+aponte `DATABASE_PATH` para esse volume. Sem disco persistente, o histórico de
+deduplicação será perdido a cada deploy.
 
-!setar_canal: Define o canal atual como o destino das vagas automáticas (Requer Admin).
+## Desenvolvimento
 
-!buscar [termo]: Busca vagas em tempo real sobre um tema específico.
+```bash
+pip install -r requirements-dev.txt
+ruff check .
+ruff format --check .
+pytest
+```
 
-![print discord](https://github.com/user-attachments/assets/dddabb90-3fdc-4d08-b3f9-abfa45ba20fd)
-![print discord(1)](https://github.com/user-attachments/assets/c13a32ff-1131-4cd6-941a-65d45e8fa010)
+O workflow em `.github/workflows/ci.yml` executa lint, formatação e testes em
+pushes e pull requests. Os testes cobrem limpeza de HTML, mapeamento de uma
+resposta simulada da Adzuna e persistência/deduplicação no SQLite.
+
+## Estrutura
+
+```text
+main.py                    ponto de entrada e logging
+jobbot/bot.py              ciclo de vida do bot
+jobbot/cogs/jobs.py        comandos e tarefa agendada
+jobbot/services/adzuna.py  cliente HTTP, cache e mapeamento
+jobbot/database.py         configurações e IDs enviados no SQLite
+jobbot/embeds.py           apresentação das vagas
+tests/                     testes automatizados
+```
+
+## Licença
+
+[MIT](LICENSE)

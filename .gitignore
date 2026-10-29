@@ -5,3 +5,10 @@ env/
 __pycache__/
 *.py[cod]
 servidores.json
+jobbot.db
+jobbot.db-shm
+jobbot.db-wal
+.pytest_cache/
+.ruff_cache/
+htmlcov/
+.coverage
