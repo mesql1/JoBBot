@@ -16,6 +16,26 @@ from jobbot.services.adzuna import AdzunaError, Job
 LOGGER = logging.getLogger(__name__)
 SAO_PAULO = ZoneInfo("America/Sao_Paulo")
 DEFAULT_TERMS = ("python",)
+COUNTRY_CHOICES = [
+    app_commands.Choice(name="Brasil", value="br"),
+    app_commands.Choice(name="Estados Unidos", value="us"),
+    app_commands.Choice(name="Reino Unido", value="gb"),
+    app_commands.Choice(name="Canadá", value="ca"),
+    app_commands.Choice(name="Austrália", value="au"),
+    app_commands.Choice(name="Alemanha", value="de"),
+    app_commands.Choice(name="França", value="fr"),
+    app_commands.Choice(name="Índia", value="in"),
+    app_commands.Choice(name="Itália", value="it"),
+    app_commands.Choice(name="Países Baixos", value="nl"),
+    app_commands.Choice(name="Nova Zelândia", value="nz"),
+    app_commands.Choice(name="Áustria", value="at"),
+    app_commands.Choice(name="Bélgica", value="be"),
+    app_commands.Choice(name="Polônia", value="pl"),
+    app_commands.Choice(name="Singapura", value="sg"),
+    app_commands.Choice(name="África do Sul", value="za"),
+    app_commands.Choice(name="Suíça", value="ch"),
+]
+COUNTRY_NAMES = {choice.value: choice.name for choice in COUNTRY_CHOICES}
 
 
 def batches(items: list[Job], size: int = 10):
@@ -48,13 +68,18 @@ class JobsCog(commands.Cog):
     @app_commands.describe(
         canal="Canal de destino (por padrão, o canal atual)",
         termos="Termos separados por vírgula, por exemplo: python, dados, suporte",
+        lugar="Cidade, estado ou região, por exemplo: São Paulo",
+        pais="País das vagas (Brasil por padrão)",
     )
+    @app_commands.choices(pais=COUNTRY_CHOICES)
     @app_commands.checks.has_permissions(administrator=True)
     async def set_channel(
         self,
         interaction: discord.Interaction,
         canal: discord.TextChannel | None = None,
         termos: str = "python",
+        lugar: str | None = None,
+        pais: str = "br",
     ) -> None:
         if interaction.guild_id is None:
             await interaction.response.send_message(
@@ -81,14 +106,25 @@ class JobsCog(commands.Cog):
                 "Cada termo pode ter no máximo 50 caracteres.", ephemeral=True
             )
             return
+        normalized_location = " ".join((lugar or "").split()).strip() or None
+        if normalized_location and len(normalized_location) > 100:
+            await interaction.response.send_message(
+                "O lugar pode ter no máximo 100 caracteres.", ephemeral=True
+            )
+            return
 
         await self.bot.database.set_guild(
-            interaction.guild_id, selected_channel.id, parsed_terms
+            interaction.guild_id,
+            selected_channel.id,
+            parsed_terms,
+            normalized_location,
+            pais,
         )
         readable_terms = ", ".join(f"`{term}`" for term in parsed_terms)
         message = (
             f"Canal atualizado para {selected_channel.mention}. "
-            f"Buscas: {readable_terms}."
+            f"Buscas: {readable_terms}. Lugar: "
+            f"{normalized_location or 'todo o país'} — {COUNTRY_NAMES[pais]}."
         )
         await interaction.response.send_message(
             message,
@@ -110,12 +146,21 @@ class JobsCog(commands.Cog):
             await interaction.response.send_message(message, ephemeral=True)
 
     @app_commands.command(name="buscar", description="Busca vagas recentes na Adzuna.")
-    @app_commands.describe(termo="Tecnologia, cargo ou expressão que deseja buscar")
+    @app_commands.describe(
+        termo="Tecnologia, cargo ou expressão que deseja buscar",
+        lugar="Cidade, estado ou região, por exemplo: Curitiba",
+        pais="País das vagas (Brasil por padrão)",
+    )
+    @app_commands.choices(pais=COUNTRY_CHOICES)
     @app_commands.checks.cooldown(
         2, 60.0, key=lambda interaction: (interaction.guild_id, interaction.user.id)
     )
     async def search(
-        self, interaction: discord.Interaction, termo: str = "python"
+        self,
+        interaction: discord.Interaction,
+        termo: str = "python",
+        lugar: str | None = None,
+        pais: str = "br",
     ) -> None:
         termo = " ".join(termo.split()).strip()
         if not termo or len(termo) > 100:
@@ -123,22 +168,34 @@ class JobsCog(commands.Cog):
                 "Use um termo de busca com até 100 caracteres.", ephemeral=True
             )
             return
+        lugar = " ".join((lugar or "").split()).strip() or None
+        if lugar and len(lugar) > 100:
+            await interaction.response.send_message(
+                "O lugar pode ter no máximo 100 caracteres.", ephemeral=True
+            )
+            return
 
         await interaction.response.defer(thinking=True)
         try:
-            jobs = await self.bot.adzuna.search(termo)
+            jobs = await self.bot.adzuna.search(termo, location=lugar, country=pais)
         except AdzunaError as exc:
             await interaction.followup.send(str(exc), ephemeral=True)
             return
 
         if not jobs:
             await interaction.followup.send(
-                f"Nenhuma vaga encontrada para **{termo}**.", ephemeral=True
+                f"Nenhuma vaga encontrada para **{termo}** em "
+                f"**{lugar or COUNTRY_NAMES[pais]}**.",
+                ephemeral=True,
             )
             return
         for index, batch in enumerate(batches(jobs)):
             await interaction.followup.send(
-                content=f"Vagas para **{termo}**:" if index == 0 else None,
+                content=(
+                    f"Vagas para **{termo}** em **{lugar or COUNTRY_NAMES[pais]}**:"
+                    if index == 0
+                    else None
+                ),
                 embeds=[job_embed(job) for job in batch],
             )
 
@@ -191,7 +248,12 @@ class JobsCog(commands.Cog):
         unique_jobs: dict[str, Job] = {}
         for term in config.terms or DEFAULT_TERMS:
             try:
-                for job in await self.bot.adzuna.search(term, max_days_old=1):
+                for job in await self.bot.adzuna.search(
+                    term,
+                    location=config.location,
+                    country=config.country,
+                    max_days_old=1,
+                ):
                     unique_jobs.setdefault(job.id, job)
             except AdzunaError:
                 LOGGER.exception(

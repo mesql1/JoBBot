@@ -81,10 +81,15 @@ O processo falha cedo e informa quais variáveis obrigatórias estão faltando.
 ## Comandos
 
 - `/oi`: confirma que o bot está online;
-- `/buscar termo:"desenvolvedor python"`: pesquisa uma expressão completa. Cada
-  usuário pode fazer duas buscas por minuto;
-- `/setar_canal canal:#vagas termos:"python, dados, suporte"`: configura o canal
-  e de um a cinco termos. Requer permissão de administrador.
+- `/buscar termo:"desenvolvedor python" lugar:"São Paulo" pais:Brasil`: pesquisa
+  uma expressão completa em uma cidade, estado ou região. Cada usuário pode
+  fazer duas buscas por minuto;
+- `/setar_canal canal:#vagas termos:"python, dados, suporte" lugar:"Curitiba"
+  pais:Brasil`: configura o canal, de um a cinco termos e a região das buscas
+  automáticas. Requer permissão de administrador.
+
+O lugar é opcional; sem ele, a busca cobre todo o país selecionado. O país é
+Brasil por padrão e aparece como uma lista de opções compatíveis com a Adzuna.
 
 ## Hospedagem 24/7
 

@@ -81,11 +81,18 @@ async def test_search_uses_quality_filters_and_maps_mocked_api() -> None:
     client = AdzunaClient("id", "key")
     client._session = session  # type: ignore[assignment]
 
-    jobs = await client.search("desenvolvedor python", max_days_old=1)
+    jobs = await client.search(
+        "desenvolvedor python",
+        location="São Paulo",
+        country="br",
+        max_days_old=1,
+    )
 
     assert [job.id for job in jobs] == ["abc"]
-    _, params = session.calls[0]
+    url, params = session.calls[0]
+    assert "/jobs/br/search/1" in url
     assert params["what"] == "desenvolvedor python"
     assert params["category"] == "it-jobs"
     assert params["sort_by"] == "date"
     assert params["max_days_old"] == 1
+    assert params["where"] == "São Paulo"

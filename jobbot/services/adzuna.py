@@ -13,6 +13,27 @@ import aiohttp
 
 LOGGER = logging.getLogger(__name__)
 WHITESPACE_RE = re.compile(r"\s+")
+SUPPORTED_COUNTRIES = frozenset(
+    {
+        "at",
+        "au",
+        "be",
+        "br",
+        "ca",
+        "ch",
+        "de",
+        "fr",
+        "gb",
+        "in",
+        "it",
+        "nl",
+        "nz",
+        "pl",
+        "sg",
+        "us",
+        "za",
+    }
+)
 
 
 class _TextExtractor(HTMLParser):
@@ -76,7 +97,7 @@ class AdzunaError(RuntimeError):
 
 
 class AdzunaClient:
-    BASE_URL = "https://api.adzuna.com/v1/api/jobs/br/search/1"
+    BASE_URL = "https://api.adzuna.com/v1/api/jobs/{country}/search/1"
 
     def __init__(
         self,
@@ -91,7 +112,9 @@ class AdzunaClient:
         self.cache_ttl = cache_ttl
         self.timeout = aiohttp.ClientTimeout(total=timeout, connect=5)
         self._session: aiohttp.ClientSession | None = None
-        self._cache: dict[tuple[str, int | None], tuple[float, list[Job]]] = {}
+        self._cache: dict[
+            tuple[str, str, str, int | None], tuple[float, list[Job]]
+        ] = {}
         self._lock = asyncio.Lock()
 
     async def start(self) -> None:
@@ -102,11 +125,27 @@ class AdzunaClient:
         if self._session and not self._session.closed:
             await self._session.close()
 
-    async def search(self, term: str, *, max_days_old: int | None = None) -> list[Job]:
+    async def search(
+        self,
+        term: str,
+        *,
+        location: str | None = None,
+        country: str = "br",
+        max_days_old: int | None = None,
+    ) -> list[Job]:
         normalized = " ".join(term.split()).strip()
         if not normalized:
             return []
-        cache_key = (normalized.casefold(), max_days_old)
+        normalized_location = " ".join((location or "").split()).strip()
+        country = country.casefold()
+        if country not in SUPPORTED_COUNTRIES:
+            raise AdzunaError("País não suportado pela Adzuna.")
+        cache_key = (
+            normalized.casefold(),
+            normalized_location.casefold(),
+            country,
+            max_days_old,
+        )
         cached = self._cache.get(cache_key)
         if cached and time.monotonic() - cached[0] < self.cache_ttl:
             return list(cached[1])
@@ -115,11 +154,23 @@ class AdzunaClient:
             cached = self._cache.get(cache_key)
             if cached and time.monotonic() - cached[0] < self.cache_ttl:
                 return list(cached[1])
-            jobs = await self._fetch(normalized, max_days_old=max_days_old)
+            jobs = await self._fetch(
+                normalized,
+                location=normalized_location or None,
+                country=country,
+                max_days_old=max_days_old,
+            )
             self._cache[cache_key] = (time.monotonic(), jobs)
             return list(jobs)
 
-    async def _fetch(self, term: str, *, max_days_old: int | None) -> list[Job]:
+    async def _fetch(
+        self,
+        term: str,
+        *,
+        location: str | None,
+        country: str,
+        max_days_old: int | None,
+    ) -> list[Job]:
         await self.start()
         assert self._session is not None
         params: dict[str, str | int] = {
@@ -133,9 +184,12 @@ class AdzunaClient:
         }
         if max_days_old is not None:
             params["max_days_old"] = max_days_old
+        if location:
+            params["where"] = location
 
         try:
-            async with self._session.get(self.BASE_URL, params=params) as response:
+            url = self.BASE_URL.format(country=country)
+            async with self._session.get(url, params=params) as response:
                 response.raise_for_status()
                 payload = await response.json()
         except (TimeoutError, aiohttp.ClientError) as exc:
